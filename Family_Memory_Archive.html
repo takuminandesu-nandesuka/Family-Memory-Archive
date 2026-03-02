@@ -12,28 +12,28 @@
     <style>
         :root { --main-blue: #2193b0; --light-blue: #f0f9ff; --main-gradient: linear-gradient(135deg, #74ebd5, #9face6); }
         body { background-color: #fdfdfd; font-family: sans-serif; padding-bottom: 50px; }
-        .main-header { background: var(--main-gradient); color: white; padding: 1.5rem 0; }
+        .main-header { background: var(--main-gradient); color: white; padding: 1.5rem 0; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         .genre-tabs { background: white; padding: 10px 0; border-bottom: 1px solid #ddd; position: sticky; top: 0; z-index: 1040; }
-        .nav-genre .nav-link { color: #555; border: 1px solid #eee; margin: 0 5px; border-radius: 30px; font-weight: bold; padding: 8px 20px; }
-        .nav-genre .nav-link.active { background: var(--main-blue); color: white; border-color: var(--main-blue); }
-        .content-container { max-width: 1200px; margin: 0 auto; }
+        .nav-genre .nav-link { color: #555; border: 1px solid #eee; margin: 0 5px; border-radius: 30px; font-weight: bold; padding: 8px 20px; transition: 0.3s; }
+        .nav-genre .nav-link.active { background: var(--main-blue) !important; color: white !important; border-color: var(--main-blue); }
+        .content-container { max-width: 1200px; margin: 0 auto; padding: 0 15px; }
         .card-main { border-radius: 15px; overflow: hidden; border: none; box-shadow: 0 8px 25px rgba(0,0,0,0.05); background: white; }
         #mainTable { table-layout: fixed !important; width: 100% !important; border-collapse: separate !important; border-spacing: 0; }
-        #mainTable thead th { background-color: var(--light-blue) !important; padding: 12px 10px !important; text-align: left; font-size: 0.85rem; }
+        #mainTable thead th { background-color: var(--light-blue) !important; padding: 12px 10px !important; text-align: left; font-size: 0.85rem; border-bottom: 1px solid #dee2e6; }
         .filter-row th { background-color: white !important; border-bottom: 3px solid var(--main-blue) !important; padding: 5px 10px !important; }
         .filter-row input { width: 100%; padding: 4px 8px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 0.75rem; outline: none; }
         td { padding: 12px 10px !important; border-bottom: 1px solid #f1f5f9; font-size: 0.9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         tr:hover td { background-color: #f8faff; cursor: pointer; }
-        #dropZone { border: 3px dashed #cbd5e1; border-radius: 20px; padding: 40px; text-align: center; cursor: pointer; transition: 0.3s; }
-        #dropZone.dragover { background: var(--light-blue); border-color: var(--main-blue); }
-        .sync-status { font-size: 0.8rem; padding: 5px 15px; border-radius: 20px; }
+        #dropZone { border: 3px dashed #cbd5e1; border-radius: 20px; padding: 40px; text-align: center; cursor: pointer; transition: 0.3s; background: #f8fafc; }
+        #dropZone:hover { background: var(--light-blue); border-color: var(--main-blue); }
+        .sync-status { font-size: 0.8rem; padding: 5px 15px; border-radius: 20px; font-weight: bold; }
         .status-ok { background: #e8f5e9; color: #2e7d32; }
+        .status-error { background: #ffebee; color: #c62828; }
     </style>
 </head>
 <body>
 
 <script>
-    // GitHub設定：トークンは私が覚えていますので、ここには後ほど注入されます
     const GITHUB_CONFIG = {
         token: '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', 
         owner: 'takuminandesu-nandesuka',
@@ -59,52 +59,26 @@
     </div>
 </div>
 
-<div class="container-fluid mt-4">
-    <div class="content-container">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h4 id="currentGenreTitle" class="fw-bold text-secondary m-0">✈️ 旅行</h4>
-            <div class="d-flex gap-2">
-                <button class="btn btn-outline-success rounded-pill px-3 shadow-sm btn-sm" onclick="openImportModal()">📥 CSV取り込み</button>
-                <button class="btn btn-primary rounded-pill px-4 shadow-sm fw-bold" onclick="openModal(-1)">＋ 新規登録</button>
-            </div>
+<div class="container-fluid mt-4 content-container">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 id="currentGenreTitle" class="fw-bold text-secondary m-0">✈️ 旅行</h4>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-success rounded-pill px-3 shadow-sm btn-sm" onclick="openImportModal()">📥 CSV取り込み</button>
+            <button class="btn btn-primary rounded-pill px-4 shadow-sm fw-bold" onclick="openModal(-1)">＋ 新規登録</button>
         </div>
-        <div class="card card-main bg-white">
-            <div class="p-3">
-                <table id="mainTable" class="table table-hover mb-0">
-                    <thead id="mainTableHead"></thead>
-                    <tbody id="tableBody"></tbody>
-                </table>
-            </div>
+    </div>
+    <div class="card card-main">
+        <div class="p-3">
+            <table id="mainTable" class="table table-hover mb-0">
+                <thead id="mainTableHead"></thead>
+                <tbody id="tableBody"></tbody>
+            </table>
         </div>
     </div>
 </div>
 
-<div class="modal fade" id="importModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
-            <div class="modal-header border-0 pb-0"><h5 class="modal-title fw-bold">📥 CSV取り込み</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-            <div class="modal-body p-4">
-                <div id="dropZone" onclick="$('#csvFileInput').click()">
-                    <p class="m-0 fw-bold">CSVファイルをドロップ、またはクリック</p>
-                    <input type="file" id="csvFileInput" class="d-none" accept=".csv" onchange="handleFileSelect(event)">
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="modal fade" id="editModal" tabindex="-1">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg" style="border-radius: 25px;">
-            <div class="modal-header border-0 pb-0"><h5 class="modal-title fw-bold">記録を編集</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-            <div class="modal-body p-4" id="modalFieldsArea"></div>
-            <div class="modal-footer border-0">
-                <button class="btn btn-link text-danger text-decoration-none me-auto" onclick="deleteRecord()">削除</button>
-                <button id="saveBtn" class="btn btn-primary px-5 rounded-pill shadow fw-bold" onclick="saveRecord()">GitHubへ保存</button>
-            </div>
-        </div>
-    </div>
-</div>
+<div class="modal fade" id="importModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content border-0 shadow-lg" style="border-radius: 20px;"><div class="modal-header border-0 pb-0"><h5 class="modal-title fw-bold">📥 CSV取り込み</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body p-4"><div id="dropZone" onclick="$('#csvFileInput').click()"><p class="m-0 fw-bold">CSVファイルをドロップ、またはクリック</p><input type="file" id="csvFileInput" class="d-none" accept=".csv" onchange="handleFileSelect(event)"></div></div></div></div></div>
+<div class="modal fade" id="editModal" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content border-0 shadow-lg" style="border-radius: 25px;"><div class="modal-header border-0 pb-0"><h5 class="modal-title fw-bold">記録を編集</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body p-4" id="modalFieldsArea"></div><div class="modal-footer border-0"><button class="btn btn-link text-danger text-decoration-none me-auto" onclick="deleteRecord()">削除</button><button id="saveBtn" class="btn btn-primary px-5 rounded-pill shadow fw-bold" onclick="saveRecord()">保存してクラウド同期</button></div></div></div></div>
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
@@ -126,45 +100,40 @@
     let editingIdx = -1;
     let currentSha = "";
 
-    $(document).ready(function() {
-        loadFromGitHub();
-        setupDragAndDrop();
-    });
+    $(document).ready(() => loadFromGitHub());
+
+    // 日本語対応のBase64変換
+    const utoa = (str) => btoa(unescape(encodeURIComponent(str)));
+    const atou = (str) => decodeURIComponent(escape(atob(str)));
 
     async function loadFromGitHub() {
         const url = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${GITHUB_CONFIG.path}`;
         try {
-            const response = await fetch(url, { headers: { 'Authorization': `token ${GITHUB_CONFIG.token}` } });
-            const data = await response.json();
+            const res = await fetch(url, { headers: { 'Authorization': `token ${GITHUB_CONFIG.token}`, 'Cache-Control': 'no-cache' } });
+            if (!res.ok) throw new Error();
+            const data = await res.json();
             currentSha = data.sha;
-            const content = JSON.parse(decodeURIComponent(escape(atob(data.content))));
+            const content = JSON.parse(atou(data.content));
             allData = { ...allData, ...content };
-            $('#cloudStatus').html('✅ クラウド同期中').addClass('status-ok');
+            $('#cloudStatus').text('✅ クラウド同期中').addClass('status-ok');
             switchGenre('旅行');
         } catch (e) {
-            $('#cloudStatus').html('❌ 接続エラー').css('color','red');
+            $('#cloudStatus').text('❌ 接続エラー: data.jsonを確認してください').addClass('status-error');
         }
     }
 
-    async function saveRecord() {
-        const config = genreConfigs[currentGenre];
-        let d = { details: [] };
-        config.keys.forEach(k => { if(k !== "-") d[k] = $(`#f-${k}`).val(); });
-        
-        if(editingIdx === -1) allData[currentGenre].push(d);
-        else allData[currentGenre][editingIdx] = d;
-
+    async function saveToGitHub() {
+        $('#saveBtn').prop('disabled', true).text('同期中...');
         const url = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${GITHUB_CONFIG.path}`;
-        const content = btoa(unescape(encodeURIComponent(JSON.stringify(allData, null, 2))));
-        
         try {
             const res = await fetch(url, {
                 method: 'PUT',
                 headers: { 'Authorization': `token ${GITHUB_CONFIG.token}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: "Update", content: content, sha: currentSha })
+                body: JSON.stringify({ message: "Archive Update", content: utoa(JSON.stringify(allData, null, 2)), sha: currentSha })
             });
-            location.reload();
-        } catch (e) { alert('保存失敗'); }
+            if (res.ok) location.reload();
+            else alert('保存に失敗しました。トークン権限やリポジトリ設定を確認してください。');
+        } catch (e) { alert('通信エラーが発生しました。'); }
     }
 
     function switchGenre(genre) {
@@ -177,8 +146,9 @@
     }
 
     function updateTableHeader() {
-        const config = genreConfigs[currentGenre];
-        let html = '<tr>' + config.fields.map(f => `<th>${f}</th>`).join('') + '</tr><tr class="filter-row">' + config.fields.map(() => '<th><input type="text" placeholder="絞込"></th>').join('') + '</tr>';
+        const fields = genreConfigs[currentGenre].fields;
+        let html = '<tr>' + fields.map(f => `<th>${f}</th>`).join('') + '</tr>';
+        html += '<tr class="filter-row">' + fields.map(() => '<th><input type="text" placeholder="絞込"></th>').join('') + '</tr>';
         $('#mainTableHead').html(html);
     }
 
@@ -189,18 +159,16 @@
             config.keys.forEach(k => row[k] = d[k] || '');
             return row;
         });
-        if ($.fn.DataTable.isDataTable('#mainTable')) { $('#mainTable').DataTable().destroy(); }
+        if ($.fn.DataTable.isDataTable('#mainTable')) $('#mainTable').DataTable().destroy();
         const table = $('#mainTable').DataTable({
-            data: data,
-            columns: config.keys.map(k => ({ data: k })),
-            order: [[0, 'asc']],
-            fixedHeader: { header: true, headerOffset: 0 },
+            data: data, columns: config.keys.map(k => ({ data: k })),
+            order: [[0, 'asc']], fixedHeader: { header: true, headerOffset: 0 },
             language: { url: "https://cdn.datatables.net/plug-ins/1.13.4/i18n/ja.json" }
         });
         $('#mainTable tbody').off('click', 'tr').on('click', 'tr', function () {
-            const rowData = table.row(this).data();
-            if (rowData) openModal(rowData.idx);
+            const d = table.row(this).data(); if (d) openModal(d.idx);
         });
+        $('.filter-row input').on('keyup', function () { table.column($(this).parent().index()).search(this.value).draw(); });
     }
 
     function openModal(idx) {
@@ -208,34 +176,45 @@
         const config = genreConfigs[currentGenre];
         let html = '<div class="row g-3">';
         config.fields.forEach((f, i) => {
-            const key = config.keys[i]; if(key === "-") return;
-            const val = idx === -1 ? '' : (allData[currentGenre][idx][key] || '');
-            html += `<div class="col-md-6"><label class="small fw-bold text-muted">${f}</label><input type="text" id="f-${key}" class="form-control" value="${val}"></div>`;
+            const k = config.keys[i]; if(k === "-") return;
+            const v = idx === -1 ? '' : (allData[currentGenre][idx][k] || '');
+            html += `<div class="col-md-6"><label class="small fw-bold text-muted">${f}</label><input type="text" id="f-${k}" class="form-control" value="${v}"></div>`;
         });
         $('#modalFieldsArea').html(html + '</div>');
         new bootstrap.Modal('#editModal').show();
     }
 
-    function setupDragAndDrop() {
-        const dz = $('#dropZone');
-        dz.on('dragover', (e) => { e.preventDefault(); dz.addClass('dragover'); })
-          .on('dragleave', () => dz.removeClass('dragover'))
-          .on('drop', (e) => { e.preventDefault(); processCSV(e.originalEvent.dataTransfer.files[0]); });
+    function saveRecord() {
+        const config = genreConfigs[currentGenre];
+        let d = {};
+        config.keys.forEach(k => { if(k !== "-") d[k] = $(`#f-${k}`).val(); });
+        if(editingIdx === -1) allData[currentGenre].push(d);
+        else allData[currentGenre][editingIdx] = d;
+        saveToGitHub();
     }
 
-    function handleFileSelect(e) { processCSV(e.target.files[0]); }
-    function processCSV(file) {
+    function deleteRecord() { if(confirm('削除しますか？')){ allData[currentGenre].splice(editingIdx,1); saveToGitHub(); } }
+
+    function handleFileSelect(e) {
+        const file = e.target.files[0];
         const reader = new FileReader();
-        reader.onload = function(e) {
-            const rows = e.target.result.split(/\r?\n/).map(row => row.split(','));
+        reader.onload = function(ev) {
+            const rows = ev.target.result.split(/\r?\n/).map(row => row.split(','));
             const config = genreConfigs[currentGenre];
             const newData = rows.slice(1).filter(r => r.length > 1).map(row => {
                 let d = {}; config.keys.forEach((k, i) => { if(k !== "-") d[k] = row[i] || ''; }); return d;
             });
             allData[currentGenre] = allData[currentGenre].concat(newData);
-            saveRecord();
+            saveToGitHub();
         };
         reader.readAsText(file, 'Shift-JIS');
+    }
+
+    function setupDragAndDrop() {
+        const dz = $('#dropZone');
+        dz.on('dragover', (e) => { e.preventDefault(); dz.css('border-color', '#2193b0'); })
+          .on('dragleave', () => dz.css('border-color', '#cbd5e1'))
+          .on('drop', (e) => { e.preventDefault(); handleFileSelect({target: {files: e.originalEvent.dataTransfer.files}}); });
     }
 </script>
 </body>
