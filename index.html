@@ -134,8 +134,12 @@
         if ($.fn.DataTable.isDataTable('#mainTable')) table.destroy();
         table = $('#mainTable').DataTable({
             data: tableData,
-            pageLength: 50,
-            columns: [{ data: null, defaultContent: '<input type="checkbox" class="row-check">', orderable: false }, ...config.keys.map(k => ({ data: k }))],
+            pageLength: 50, // 初期表示を50件にする
+            lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "全件"]], // 選択肢を定義
+            columns: [
+                { data: null, defaultContent: '<input type="checkbox" class="row-check">', orderable: false },
+                ...config.keys.map(k => ({ data: k }))
+            ],
             select: { style: 'multi', selector: 'td:first-child' },
             language: { url: "https://cdn.datatables.net/plug-ins/1.13.4/i18n/ja.json" }
         });
