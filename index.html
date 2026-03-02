@@ -109,7 +109,7 @@
     async function loadFromGitHub() {
         const url = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${GITHUB_CONFIG.path}`;
         try {
-            const res = await fetch(url, { headers: { 'Authorization': `token ${GITHUB_CONFIG.token}`, 'Cache-Control': 'no-cache' } });
+            const res = await fetch(url, { headers: { 'Authorization': `token ${GITHUB_CONFIG.token}` } });
             if (!res.ok) throw new Error();
             const data = await res.json();
             currentSha = data.sha;
