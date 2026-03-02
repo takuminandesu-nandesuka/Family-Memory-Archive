@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Family Life Archive Cloud Pro</title>
+    <title>Family Life Archive Cloud Final</title>
     <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/201/201623.png">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css">
@@ -18,17 +18,17 @@
         .nav-genre .nav-link.active { background: var(--main-blue) !important; color: white !important; }
         .content-container { max-width: 1200px; margin: 0 auto; padding: 0 15px; }
         .card-main { border-radius: 15px; overflow: hidden; border: none; box-shadow: 0 8px 25px rgba(0,0,0,0.05); background: white; }
-        #mainTable { table-layout: fixed !important; width: 100% !important; border-collapse: separate !important; border-spacing: 0; }
+        #mainTable { table-layout: fixed !important; width: 100% !important; }
         #mainTable thead th { background-color: var(--light-blue) !important; padding: 12px 10px !important; text-align: left; font-size: 0.85rem; border-bottom: 1px solid #dee2e6; }
-        .filter-row th { background-color: white !important; border-bottom: 3px solid var(--main-blue) !important; padding: 5px 10px !important; }
+        .filter-row th { background-color: white !important; border-bottom: 3px solid var(--main-blue) !important; }
         .filter-row input { width: 100%; padding: 4px 8px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 0.75rem; outline: none; }
         td { padding: 12px 10px !important; border-bottom: 1px solid #f1f5f9; font-size: 0.9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         tr:hover td { background-color: #f8faff; cursor: pointer; }
         .sync-status { font-size: 0.8rem; padding: 5px 15px; border-radius: 20px; font-weight: bold; }
         .status-ok { background: #e8f5e9; color: #2e7d32; }
         .status-error { background: #ffebee; color: #c62828; }
-        #dropZone { border: 3px dashed #cbd5e1; border-radius: 20px; padding: 40px; text-align: center; cursor: pointer; transition: 0.3s; background: #f8fafc; }
-        #dropZone:hover { background: var(--light-blue); border-color: var(--main-blue); }
+        #dropZone { border: 3px dashed #cbd5e1; border-radius: 20px; padding: 40px; text-align: center; cursor: pointer; background: #f8fafc; }
+        .spot-item { border-left: 5px solid var(--main-blue); background: #f8fafc; margin-bottom: 8px; border-radius: 5px; padding: 10px; }
     </style>
 </head>
 <body>
@@ -39,7 +39,8 @@
         repo: 'Family-Memory-Archive',
         path: 'data.json'
     };
-    let userToken = ""; // 保存時に入力
+    // セッションが切れるまでトークンを保持
+    let userToken = sessionStorage.getItem('github_token') || "";
 </script>
 
 <header class="main-header text-center">
@@ -51,4 +52,180 @@
     <div class="container d-flex justify-content-center">
         <ul class="nav nav-genre border-0" id="genreTabList">
             <li class="nav-item"><button class="nav-link active" onclick="switchGenre('旅行')">✈️ 旅行</button></li>
-            <li class="nav-item">
+            <li class="nav-item"><button class="nav-link" onclick="switchGenre('エンタメ')">🎬 エンタメ</button></li>
+            <li class="nav-item"><button class="nav-link" onclick="switchGenre('家電')">🔌 家電</button></li>
+            <li class="nav-item"><button class="nav-link" onclick="switchGenre('冠婚葬祭')">👔 冠婚葬祭</button></li>
+            <li class="nav-item"><button class="nav-link" onclick="switchGenre('通院')">🏥 通院</button></li>
+        </ul>
+    </div>
+</div>
+
+<div class="container-fluid mt-4 content-container">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 id="currentGenreTitle" class="fw-bold text-secondary m-0">✈️ 旅行</h4>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-success rounded-pill px-3 shadow-sm btn-sm" onclick="openImportModal()">📥 CSV取り込み</button>
+            <button class="btn btn-primary rounded-pill px-4 shadow-sm fw-bold" onclick="openModal(-1)">＋ 新規登録</button>
+        </div>
+    </div>
+    <div class="card card-main"><div class="p-3"><table id="mainTable" class="table table-hover mb-0"><thead id="mainTableHead"></thead><tbody id="tableBody"></tbody></table></div></div>
+</div>
+
+<div class="modal fade" id="importModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content border-0 shadow-lg" style="border-radius: 20px;"><div class="modal-header border-0 pb-0"><h5 class="modal-title fw-bold">📥 CSV取り込み</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body p-4"><div id="dropZone" onclick="$('#csvFileInput').click()"><p class="m-0 fw-bold">CSVファイルをドロップ、またはクリック</p><input type="file" id="csvFileInput" class="d-none" accept=".csv" onchange="handleFileSelect(event)"></div></div></div></div></div>
+<div class="modal fade" id="editModal" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content border-0 shadow-lg" style="border-radius: 25px;"><div class="modal-header border-0 pb-0"><h5 class="modal-title fw-bold">記録を編集</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body p-4"><div id="modalFieldsArea"></div><hr><div id="spotSection"><label class="small fw-bold d-block mb-2">📍 詳細メモ・場所</label><div class="input-group mb-2"><input type="text" id="newSpotName" class="form-control" placeholder="追加する内容"><button class="btn btn-outline-primary" type="button" onclick="addNewSpot()">追加</button></div><div id="spotList"></div></div></div><div class="modal-footer border-0"><button class="btn btn-link text-danger text-decoration-none me-auto" onclick="deleteRecord()">削除</button><button id="saveBtn" class="btn btn-primary px-5 rounded-pill shadow fw-bold" onclick="saveRecord()">保存（クラウド同期）</button></div></div></div></div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/fixedheader/3.3.2/js/dataTables.fixedHeader.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    const genreConfigs = {
+        "旅行": { fields: ["年", "旅行日", "タイプ", "行先", "ホテル/旅館", "回った場所"], keys: ["year", "date", "type", "title", "place", "memo"] },
+        "エンタメ": { fields: ["年", "日付", "ジャンル", "会場", "作品名/アーティスト名", "備考"], keys: ["year", "date", "genre", "venue", "title", "memo"] },
+        "家電": { fields: ["年", "購入日", "家電", "保証期間期限", "備考1", "備考2"], keys: ["year", "date", "item", "warranty", "note1", "note2"] },
+        "冠婚葬祭": { fields: ["年", "日付", "種別", "名前", "金額", "備考"], keys: ["year", "date", "type", "name", "amount", "note"] },
+        "通院": { fields: ["年", "通院日", "病院", "名前", "内容/備考", "-"], keys: ["year", "date", "hospital", "name", "note", "memo"] }
+    };
+
+    let allData = { "旅行": [], "エンタメ": [], "家電": [], "冠婚葬祭": [], "通院": [] };
+    let currentGenre = "旅行";
+    let editingIdx = -1;
+    let tempSpots = [];
+    let currentSha = "";
+
+    $(document).ready(() => { loadFromGitHub(); setupDragAndDrop(); });
+
+    const utoa = (str) => btoa(unescape(encodeURIComponent(str)));
+    const atou = (str) => decodeURIComponent(escape(atob(str)));
+
+    async function loadFromGitHub() {
+        const url = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${GITHUB_CONFIG.path}`;
+        try {
+            const res = await fetch(url);
+            if (!res.ok) throw new Error();
+            const data = await res.json();
+            currentSha = data.sha;
+            const content = JSON.parse(atou(data.content));
+            allData = { ...allData, ...content };
+            $('#cloudStatus').text('✅ クラウド接続成功').addClass('status-ok');
+            switchGenre('旅行');
+        } catch (e) { $('#cloudStatus').text('❌ 接続エラー').addClass('status-error'); }
+    }
+
+    async function saveToGitHub() {
+        if (!userToken) {
+            userToken = prompt("GitHubトークン（ghp_...）を入力してください：");
+            if (!userToken) return;
+            sessionStorage.setItem('github_token', userToken);
+        }
+        $('#saveBtn').prop('disabled', true).text('同期中...');
+        const url = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${GITHUB_CONFIG.path}`;
+        try {
+            const res = await fetch(url, {
+                method: 'PUT',
+                headers: { 'Authorization': `token ${userToken}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: "Update Archive", content: utoa(JSON.stringify(allData, null, 2)), sha: currentSha })
+            });
+            if (res.ok) location.reload();
+            else { alert('保存失敗。トークンが無効かもしれません。'); userToken=""; sessionStorage.removeItem('github_token'); location.reload(); }
+        } catch (e) { alert('通信エラー'); location.reload(); }
+    }
+
+    function switchGenre(genre) {
+        currentGenre = genre;
+        $('#genreTabList .nav-link').removeClass('active');
+        $(`#genreTabList .nav-link:contains("${genre}")`).addClass('active');
+        $('#currentGenreTitle').text(genre);
+        updateTableHeader(); initTable();
+    }
+
+    function updateTableHeader() {
+        const config = genreConfigs[currentGenre];
+        let html = '<tr>' + config.fields.map(f => `<th>${f}</th>`).join('') + '</tr><tr class="filter-row">' + config.fields.map(() => '<th><input type="text" placeholder="絞込"></th>').join('') + '</tr>';
+        $('#mainTableHead').html(html);
+    }
+
+    function initTable() {
+        const config = genreConfigs[currentGenre];
+        const data = allData[currentGenre].map((d, i) => {
+            let row = { idx: i };
+            config.keys.forEach(k => row[k] = d[k] || '');
+            if(d.details && d.details.length > 0) row[config.keys[5]] = d.details.map(s => s.name).join('、');
+            return row;
+        });
+        if ($.fn.DataTable.isDataTable('#mainTable')) $('#mainTable').DataTable().destroy();
+        const table = $('#mainTable').DataTable({
+            data: data, columns: config.keys.map(k => ({ data: k })),
+            order: [[0, 'asc']], language: { url: "https://cdn.datatables.net/plug-ins/1.13.4/i18n/ja.json" }
+        });
+        $('#mainTable tbody').off('click', 'tr').on('click', 'tr', function () {
+            const d = table.row(this).data(); if (d) openModal(d.idx);
+        });
+    }
+
+    function openModal(idx) {
+        editingIdx = idx;
+        const config = genreConfigs[currentGenre];
+        let html = '<div class="row g-3">';
+        config.fields.forEach((f, i) => {
+            const k = config.keys[i]; if(k === "-" || i === 5) return;
+            const v = idx === -1 ? (k === 'year' ? new Date().getFullYear() : '') : (allData[currentGenre][idx][k] || '');
+            html += `<div class="col-md-6"><label class="small fw-bold text-muted">${f}</label><input type="text" id="f-${k}" class="form-control" value="${v}"></div>`;
+        });
+        $('#modalFieldsArea').html(html + '</div>');
+        tempSpots = (idx !== -1 && allData[currentGenre][idx].details) ? JSON.parse(JSON.stringify(allData[currentGenre][idx].details)) : [];
+        renderSpotList();
+        new bootstrap.Modal('#editModal').show();
+    }
+
+    function addNewSpot() {
+        const name = $('#newSpotName').val();
+        if(name) { tempSpots.push({ name: name, comment: "" }); $('#newSpotName').val(''); renderSpotList(); }
+    }
+
+    function renderSpotList() {
+        const area = $('#spotList').empty();
+        tempSpots.forEach((s, i) => {
+            area.append(`<div class="spot-item"><div class="d-flex justify-content-between"><span class="small fw-bold">📍 ${s.name}</span><button class="btn btn-sm text-danger" onclick="tempSpots.splice(${i},1);renderSpotList()">✕</button></div>
+                         <textarea class="form-control form-control-sm mt-1 border-0 bg-transparent" placeholder="詳細メモ..." onchange="tempSpots[${i}].comment=this.value">${s.comment || ""}</textarea></div>`);
+        });
+    }
+
+    function saveRecord() {
+        const config = genreConfigs[currentGenre];
+        let d = { details: tempSpots };
+        config.keys.forEach(k => { if(k !== "-" && k !== config.keys[5]) d[k] = $(`#f-${k}`).val(); });
+        if(editingIdx === -1) allData[currentGenre].push(d);
+        else allData[currentGenre][editingIdx] = d;
+        saveToGitHub();
+    }
+
+    function deleteRecord() { if(confirm('削除しますか？')){ allData[currentGenre].splice(editingIdx,1); saveToGitHub(); } }
+
+    function handleFileSelect(e) {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            const rows = ev.target.result.split(/\r?\n/).map(row => row.split(','));
+            const config = genreConfigs[currentGenre];
+            const newData = rows.slice(1).filter(r => r.length > 1).map(row => {
+                let d = { details: [] };
+                config.keys.forEach((k, i) => { if(k !== "-") d[k] = row[i] || ''; });
+                return d;
+            });
+            allData[currentGenre] = allData[currentGenre].concat(newData);
+            saveToGitHub();
+        };
+        reader.readAsText(e.target.files[0], 'Shift-JIS');
+    }
+
+    function setupDragAndDrop() {
+        $('#dropZone').on('dragover', (e) => { e.preventDefault(); }).on('drop', (e) => {
+            e.preventDefault(); handleFileSelect({target: {files: e.originalEvent.dataTransfer.files}});
+        });
+    }
+    function openImportModal() { new bootstrap.Modal('#importModal').show(); }
+</script>
+</body>
+</html>
