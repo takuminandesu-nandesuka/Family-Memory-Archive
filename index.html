@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Family Life Archive Cloud</title>
+    <title>Family Life Archive Cloud Pro</title>
     <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/201/201623.png">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css">
@@ -27,18 +27,19 @@
         .sync-status { font-size: 0.8rem; padding: 5px 15px; border-radius: 20px; font-weight: bold; }
         .status-ok { background: #e8f5e9; color: #2e7d32; }
         .status-error { background: #ffebee; color: #c62828; }
+        #dropZone { border: 3px dashed #cbd5e1; border-radius: 20px; padding: 40px; text-align: center; cursor: pointer; transition: 0.3s; background: #f8fafc; }
+        #dropZone:hover { background: var(--light-blue); border-color: var(--main-blue); }
     </style>
 </head>
 <body>
 
 <script>
-    // ⚠️ トークンはここから削除しました（セキュリティのため）
     const GITHUB_CONFIG = {
         owner: 'takuminandesu-nandesuka',
         repo: 'Family-Memory-Archive',
         path: 'data.json'
     };
-    let userToken = ""; // 保存時に入力してもらう
+    let userToken = ""; // 保存時に入力
 </script>
 
 <header class="main-header text-center">
@@ -50,165 +51,4 @@
     <div class="container d-flex justify-content-center">
         <ul class="nav nav-genre border-0" id="genreTabList">
             <li class="nav-item"><button class="nav-link active" onclick="switchGenre('旅行')">✈️ 旅行</button></li>
-            <li class="nav-item"><button class="nav-link" onclick="switchGenre('エンタメ')">🎬 エンタメ</button></li>
-            <li class="nav-item"><button class="nav-link" onclick="switchGenre('家電')">🔌 家電</button></li>
-            <li class="nav-item"><button class="nav-link" onclick="switchGenre('冠婚葬祭')">👔 冠婚葬祭</button></li>
-            <li class="nav-item"><button class="nav-link" onclick="switchGenre('通院')">🏥 通院</button></li>
-        </ul>
-    </div>
-</div>
-
-<div class="container-fluid mt-4 content-container">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h4 id="currentGenreTitle" class="fw-bold text-secondary m-0">✈️ 旅行</h4>
-        <div class="d-flex gap-2">
-            <button class="btn btn-primary rounded-pill px-4 shadow-sm fw-bold" onclick="openModal(-1)">＋ 新規登録</button>
-        </div>
-    </div>
-    <div class="card card-main">
-        <div class="p-3">
-            <table id="mainTable" class="table table-hover mb-0">
-                <thead id="mainTableHead"></thead>
-                <tbody id="tableBody"></tbody>
-            </table>
-        </div>
-    </div>
-</div>
-
-<div class="modal fade" id="editModal" tabindex="-1">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg" style="border-radius: 25px;">
-            <div class="modal-header border-0 pb-0"><h5 class="modal-title fw-bold">記録を編集</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-            <div class="modal-body p-4" id="modalFieldsArea"></div>
-            <div class="modal-footer border-0">
-                <button class="btn btn-link text-danger text-decoration-none me-auto" onclick="deleteRecord()">削除</button>
-                <button id="saveBtn" class="btn btn-primary px-5 rounded-pill shadow fw-bold" onclick="saveRecord()">保存（クラウド同期）</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
-<script src="https://cdn.datatables.net/fixedheader/3.3.2/js/dataTables.fixedHeader.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
-<script>
-    const genreConfigs = {
-        "旅行": { fields: ["年", "旅行日", "タイプ", "行先", "ホテル/旅館", "回った場所"], keys: ["year", "date", "type", "title", "place", "memo"] },
-        "エンタメ": { fields: ["年", "日付", "ジャンル", "会場", "作品名/アーティスト名", "備考"], keys: ["year", "date", "genre", "venue", "title", "memo"] },
-        "家電": { fields: ["年", "購入日", "家電", "保証期間期限", "備考1", "備考2"], keys: ["year", "date", "item", "warranty", "note1", "note2"] },
-        "冠婚葬祭": { fields: ["年", "日付", "種別", "名前", "金額", "備考"], keys: ["year", "date", "type", "name", "amount", "note"] },
-        "通院": { fields: ["年", "通院日", "病院", "名前", "備考", "-"], keys: ["year", "date", "hospital", "name", "note", "memo"] }
-    };
-
-    let allData = { "旅行": [], "エンタメ": [], "家電": [], "冠婚葬祭": [], "通院": [] };
-    let currentGenre = "旅行";
-    let editingIdx = -1;
-    let currentSha = "";
-
-    $(document).ready(() => loadFromGitHub());
-
-    // 安全な日本語Base64変換
-    const utoa = (str) => btoa(unescape(encodeURIComponent(str)));
-    const atou = (str) => decodeURIComponent(escape(atob(str)));
-
-    async function loadFromGitHub() {
-        // 読み込みはトークンなしでもPublicなら可能（ただしAPI制限回避のためRawデータを使用）
-        const url = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${GITHUB_CONFIG.path}`;
-        try {
-            const res = await fetch(url);
-            if (!res.ok) throw new Error();
-            const data = await res.json();
-            currentSha = data.sha;
-            const content = JSON.parse(atou(data.content));
-            allData = { ...allData, ...content };
-            $('#cloudStatus').text('✅ 閲覧モード（保存時にトークンが必要）').addClass('status-ok');
-            switchGenre('旅行');
-        } catch (e) {
-            $('#cloudStatus').text('❌ 接続エラー: data.jsonを確認してください').addClass('status-error');
-        }
-    }
-
-    async function saveRecord() {
-        // 保存時にトークンを尋ねる
-        if (!userToken) {
-            userToken = prompt("GitHubトークン（ghp_...）を入力してください：\n※一度入力すれば開いている間は有効です。");
-            if (!userToken) return;
-        }
-
-        const config = genreConfigs[currentGenre];
-        let d = {};
-        config.keys.forEach(k => { if(k !== "-") d[k] = $(`#f-${k}`).val(); });
-        if(editingIdx === -1) allData[currentGenre].push(d);
-        else allData[currentGenre][editingIdx] = d;
-
-        $('#saveBtn').prop('disabled', true).text('同期中...');
-        const url = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${GITHUB_CONFIG.path}`;
-        
-        try {
-            const res = await fetch(url, {
-                method: 'PUT',
-                headers: { 'Authorization': `token ${userToken}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: "Update Archive", content: utoa(JSON.stringify(allData, null, 2)), sha: currentSha })
-            });
-            if (res.ok) {
-                alert('GitHubへ保存しました！');
-                location.reload();
-            } else {
-                alert('保存に失敗しました。トークンが間違っているか、有効期限が切れています。');
-                userToken = ""; // 間違っていたらリセット
-                $('#saveBtn').prop('disabled', false).text('保存してクラウド同期');
-            }
-        } catch (e) { 
-            alert('エラーが発生しました。'); 
-            $('#saveBtn').prop('disabled', false).text('保存してクラウド同期');
-        }
-    }
-
-    // --- その他UIロジック（省略なし） ---
-    function switchGenre(genre) {
-        currentGenre = genre;
-        $('#genreTabList .nav-link').removeClass('active');
-        $(`#genreTabList .nav-link:contains("${genre}")`).addClass('active');
-        $('#currentGenreTitle').text(genre);
-        updateTableHeader(); initTable();
-    }
-    function updateTableHeader() {
-        const fields = genreConfigs[currentGenre].fields;
-        let html = '<tr>' + fields.map(f => `<th>${f}</th>`).join('') + '</tr><tr class="filter-row">' + fields.map(() => '<th><input type="text" placeholder="絞込"></th>').join('') + '</tr>';
-        $('#mainTableHead').html(html);
-    }
-    function initTable() {
-        const config = genreConfigs[currentGenre];
-        const data = allData[currentGenre].map((d, i) => {
-            let row = { idx: i };
-            config.keys.forEach(k => row[k] = d[k] || '');
-            return row;
-        });
-        if ($.fn.DataTable.isDataTable('#mainTable')) $('#mainTable').DataTable().destroy();
-        const table = $('#mainTable').DataTable({
-            data: data, columns: config.keys.map(k => ({ data: k })),
-            order: [[0, 'asc']], language: { url: "https://cdn.datatables.net/plug-ins/1.13.4/i18n/ja.json" }
-        });
-        $('#mainTable tbody').off('click', 'tr').on('click', 'tr', function () {
-            const d = table.row(this).data(); if (d) openModal(d.idx);
-        });
-    }
-    function openModal(idx) {
-        editingIdx = idx;
-        const config = genreConfigs[currentGenre];
-        let html = '<div class="row g-3">';
-        config.fields.forEach((f, i) => {
-            const k = config.keys[i]; if(k === "-") return;
-            const v = idx === -1 ? '' : (allData[currentGenre][idx][k] || '');
-            html += `<div class="col-md-6"><label class="small fw-bold text-muted">${f}</label><input type="text" id="f-${k}" class="form-control" value="${v}"></div>`;
-        });
-        $('#modalFieldsArea').html(html + '</div>');
-        new bootstrap.Modal('#editModal').show();
-    }
-    function deleteRecord() { if(confirm('削除しますか？')) saveRecord(); }
-</script>
-</body>
-</html>
+            <li class="nav-item">
